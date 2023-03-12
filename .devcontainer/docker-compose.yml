@@ -1,0 +1,52 @@
+services:
+  app:
+    build: { context: ., dockerfile: Dockerfile }
+    command: sleep infinity
+    privileged: true
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: root
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432
+      REDIS_URL: redis://redis:6379/
+      BOOTSNAP_CACHE_DIR: /usr/local/bundle/_bootsnap
+      WEBPACKER_DEV_SERVER_HOST: webpacker
+      ANYCABLE_HOST: "0.0.0.0"
+      ANYCABLE_PORT: 8080
+      ANYCABLE_REDIS_URL: redis://redis:6379/0
+      ANYCABLE_RPC_HOST: 0.0.0.0:50051
+      ANYCABLE_BROADCAST_ADAPTER: redis
+      CHROME_URL: http://chrome:3333
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      chrome: { condition: service_started }
+  postgres:
+    image: postgres:15.0
+    volumes:
+      - data-postgres:/var/lib/postgresql/data
+      - data-history:/user/local/hist
+    environment:
+      POSTGRES_PASSWORD: postgres
+      PSQL_HISTFILE: /user/local/hist/.psql_history
+    healthcheck:
+      test: pg_isready -U postgres -h 127.0.0.1
+  redis:
+    image: redis:6.2-alpine
+    volumes:
+      - data-redis:/data
+    ports:
+      - 6379
+    healthcheck:
+      test: redis-cli ping
+  chrome:
+    image: browserless/chrome:latest
+    ports:
+      - 3333
+    environment:
+      PORT: 3333
+      CONNECTION_TIMEOUT: 600000
+
+volumes:
+  data-postgres:
+  data-history:
+  data-redis:
